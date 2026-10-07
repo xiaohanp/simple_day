@@ -1,4 +1,4 @@
-// DayFlow plain-text schedule parser.
+// SimpleDay plain-text schedule parser.
 // Format:
 //   ## <date heading>            e.g. "## 2026-10-08", "## Thu Oct 8", "## tomorrow"
 //   09:00 Thesis writing 4h !15  -> fixed start, duration 4h, remind 15 min before

@@ -1,4 +1,4 @@
-# DayFlow notification worker
+# SimpleDay notification worker
 
 A tiny Cloudflare Worker that fires your schedule items as Telegram messages.
 Free tier is more than enough: ~1,500 cron runs/day out of 100,000 free requests.
@@ -10,12 +10,12 @@ npm install -g wrangler
 wrangler login                                   # opens Cloudflare in your browser
 cd worker
 cp wrangler.example.toml wrangler.toml           # your local config (git-ignored)
-wrangler kv namespace create DAYFLOW             # copy the "id" it prints
+wrangler kv namespace create SIMPLEDAY           # copy the "id" it prints
 # paste the id into wrangler.toml (replace PASTE_YOUR_KV_NAMESPACE_ID_HERE)
 wrangler deploy                                  # prints your worker URL
 ```
 
-Paste that URL (e.g. `https://dayflow.<you>.workers.dev`) into the app's
+Paste that URL (e.g. `https://simpleday.<you>.workers.dev`) into the app's
 Settings → Notification server → Worker URL. Done.
 
 ## How it works

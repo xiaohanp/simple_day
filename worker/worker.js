@@ -1,4 +1,4 @@
-// DayFlow notification worker — Cloudflare Workers (free tier).
+// SimpleDay notification worker — Cloudflare Workers (free tier).
 // Runs a cron every minute and sends due schedule items to Telegram.
 // The frontend stores the already-computed notification list here,
 // so this worker stays deliberately dumb: no parsing, no timezone math.
@@ -27,7 +27,7 @@ async function sendTelegram(botToken, chatId, text) {
 }
 
 async function loadState(env) {
-  return (await env.DAYFLOW.get('state', 'json')) || null;
+  return (await env.SIMPLEDAY.get('state', 'json')) || null;
 }
 
 function authorized(req, state) {
@@ -59,7 +59,7 @@ export default {
       if (!body || typeof body.text !== 'string') return json({ error: 'bad body' }, 400);
       const key = req.headers.get('X-Key') || '';
       if (!key) return json({ error: 'X-Key required' }, 400);
-      await env.DAYFLOW.put('state', JSON.stringify({ ...body, key }));
+      await env.SIMPLEDAY.put('state', JSON.stringify({ ...body, key }));
       return json({ ok: true });
     }
 
@@ -68,7 +68,7 @@ export default {
       const body = await req.json().catch(() => ({}));
       if (!body.botToken || !body.chatId) return json({ error: 'botToken and chatId required' }, 400);
       try {
-        await sendTelegram(body.botToken, body.chatId, 'DayFlow is connected. Notifications will arrive here.');
+        await sendTelegram(body.botToken, body.chatId, 'SimpleDay is connected. Notifications will arrive here.');
         return json({ ok: true });
       } catch (e) {
         return json({ error: e.message }, 502);
@@ -91,12 +91,12 @@ export default {
 
     for (const n of due.slice(0, 20)) {
       const sentKey = `sent:${n.key}`;
-      const already = await env.DAYFLOW.get(sentKey);
+      const already = await env.SIMPLEDAY.get(sentKey);
       if (already) continue;
       try {
         const late = now - n.fireAt > 5 * 60 * 1000;
         await sendTelegram(botToken, chatId, (late ? '(late) ' : '') + n.text);
-        ctx.waitUntil(env.DAYFLOW.put(sentKey, '1', { expirationTtl: 14 * 24 * 3600 }));
+        ctx.waitUntil(env.SIMPLEDAY.put(sentKey, '1', { expirationTtl: 14 * 24 * 3600 }));
       } catch (e) {
         // leave unsent; next cron tick retries within the grace window
         console.error('send failed', e);

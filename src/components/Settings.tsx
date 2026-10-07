@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useState } from 'react';
 import { detectChatId } from '../lib/store.js';
+import workerCode from '../../worker/worker.js?raw';
 
 function Row({ label, children, hint }) {
   return (
@@ -36,6 +37,14 @@ export default function Settings({ settings, onChange, onTest, onClose, syncStat
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState('');
   const [openGuide, setOpenGuide] = useState('');
+  const [copied, setCopied] = useState(false);
+  const copyWorker = async () => {
+    try {
+      await navigator.clipboard.writeText(workerCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch { /* clipboard blocked — the code is also on GitHub */ }
+  };
 
   const set = (k, v) => onChange({ ...settings, [k]: v });
 
@@ -125,7 +134,7 @@ export default function Settings({ settings, onChange, onTest, onClose, syncStat
 
           <div className="label" style={{ fontSize: 12, marginBottom: 14, color: 'var(--ink)' }}>Notification server</div>
 
-          <Row label="Worker URL" hint="Your Cloudflare Worker address, e.g. https://dayflow.you.workers.dev — see setup guide below.">
+          <Row label="Worker URL" hint="Your Cloudflare Worker address, e.g. https://simpleday.you.workers.dev — see setup guide below.">
             <input
               className="field font-mono"
               style={{ fontSize: 12.5 }}
@@ -189,14 +198,25 @@ export default function Settings({ settings, onChange, onTest, onClose, syncStat
               </ol>
             </Guide>
 
-            <Guide title="2 · Deploy the notification server (free, ~10 min)" open={openGuide === 'b'} onToggle={() => setOpenGuide(openGuide === 'b' ? '' : 'b')}>
+            <Guide title="2 · Set up your reminder server on Cloudflare (free, ~10 min)" open={openGuide === 'b'} onToggle={() => setOpenGuide(openGuide === 'b' ? '' : 'b')}>
+              <div style={{ marginBottom: 8 }}>All in the browser, phone included. No card, nothing to install.</div>
               <ol style={{ paddingLeft: 18, listStyle: 'decimal' }}>
-                <li>Create a free <b>Cloudflare</b> account (no card needed).</li>
-                <li>Install Node.js, then in a terminal: <span className="font-mono">npm i -g wrangler</span> and <span className="font-mono">wrangler login</span>.</li>
-                <li>In the project's <span className="font-mono">worker/</span> folder: <span className="font-mono">wrangler kv namespace create DAYFLOW</span> and paste the returned id into <span className="font-mono">wrangler.toml</span>.</li>
-                <li>Run <span className="font-mono">wrangler deploy</span>. It prints your Worker URL — paste it above.</li>
+                <li>Sign up at <a href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noreferrer" style={{ textDecoration: 'underline' }}>dash.cloudflare.com</a>.</li>
+                <li><b>Storage &amp; Databases → KV → Create</b>. Name it <span className="font-mono">simpleday</span>.</li>
+                <li><b>Workers &amp; Pages → Create → Start with Hello World</b>. Name it <span className="font-mono">simpleday</span> and press <b>Deploy</b>.</li>
+                <li>
+                  Press <b>Edit code</b>, delete everything, paste the SimpleDay code and press <b>Deploy</b>.
+                  <div style={{ margin: '6px 0 4px' }}>
+                    <button className="btn" style={{ padding: '4px 12px', fontSize: 12 }} onClick={copyWorker}>
+                      {copied ? 'Copied ✓' : 'Copy worker code'}
+                    </button>
+                  </div>
+                </li>
+                <li>Back on the worker: <b>Bindings → Add binding → KV namespace</b>. Variable name <span className="font-mono">SIMPLEDAY</span> (capitals), namespace <span className="font-mono">simpleday</span>. Save.</li>
+                <li><b>Settings → Trigger events → Add → Cron triggers</b>, every minute (<span className="font-mono">* * * * *</span>). Save.</li>
+                <li>Copy the worker's address (it ends in <span className="font-mono">.workers.dev</span>) into <b>Worker URL</b> above, then press <b>Send test notification</b>.</li>
               </ol>
-              <div style={{ marginTop: 8 }}>Full instructions are in the project's <span className="font-mono">worker/README.md</span>. Free tier covers this app many times over; the cron runs every minute.</div>
+              <div style={{ marginTop: 8 }}>The free plan covers this many times over. Prefer the command line? See <span className="font-mono">worker/README.md</span> in the project.</div>
             </Guide>
 
             <Guide title="3 · Make Telegram reliable on your Xiaomi (5 min)" open={openGuide === 'c'} onToggle={() => setOpenGuide(openGuide === 'c' ? '' : 'c')}>

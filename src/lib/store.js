@@ -2,7 +2,8 @@
 // user's Cloudflare Worker (which is what makes Telegram notifications and
 // cross-device sync work).
 
-const LS_KEY = 'dayflow.v1';
+const LS_KEY = 'simpleday.v1';
+const OLD_LS_KEY = 'dayflow.v1'; // before the rename; read once so existing plans carry over
 
 export function randomKey() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -15,7 +16,7 @@ export function randomKey() {
 
 export function loadLocal() {
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = localStorage.getItem(LS_KEY) ?? localStorage.getItem(OLD_LS_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;

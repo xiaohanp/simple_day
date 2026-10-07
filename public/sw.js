@@ -1,5 +1,5 @@
-// Minimal offline cache so DayFlow works without a connection.
-const CACHE = 'dayflow-v1';
+// Minimal offline cache so SimpleDay works without a connection.
+const CACHE = 'simpleday-v1';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();

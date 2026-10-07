@@ -1,7 +1,7 @@
 {
-  "name": "DayFlow — plain-text planner",
-  "short_name": "DayFlow",
-  "description": "A plain-text day planner with Telegram notifications.",
+  "name": "SimpleDay — minimal day planner",
+  "short_name": "SimpleDay",
+  "description": "A minimal week and day planner with Telegram reminders.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

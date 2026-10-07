@@ -1,4 +1,4 @@
-// Minimal iCalendar (.ics) reader: VEVENTs -> DayFlow items in the user's timezone.
+// Minimal iCalendar (.ics) reader: VEVENTs -> SimpleDay items in the user's timezone.
 // Handles timed and all-day events, TZID / UTC / floating times, DTEND or
 // DURATION, recurring events (RRULE + EXDATE + moved occurrences), cancelled
 // events, and maps a "N minutes before" VALARM to the item's reminder.

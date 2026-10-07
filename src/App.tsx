@@ -230,7 +230,7 @@ export default function App() {
       <header className="hairline-b flex items-center justify-between shrink-0" style={{ padding: '0 16px', height: 52 }}>
         <div className="flex items-center gap-3">
           <span className="font-mono" style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>
-            dayflow<span style={{ color: 'var(--accent)' }}>.</span>
+            simpleday<span style={{ color: 'var(--accent)' }}>.</span>
           </span>
           <span className="hidden sm:inline font-mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>
             day planner
