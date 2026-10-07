@@ -2,11 +2,10 @@
 
 A minimal day planner: your week at a glance, your day hour by hour.
 
-SimpleDay is built to stay out of your way. A clean week overview shows what's
+SimpleDay has a clean week overview shows what's
 coming, an hour-by-hour plan shows exactly how today fits together, and a
-reminder reaches your phone when it's time. It's light, quick to use and
-carefully designed. Underneath, your whole plan is plain text, so it stays
-fast, portable and entirely yours.
+reminder reaches your phone when it's time. Underneath, your whole plan is plain text, so it stays
+fast, portable and private.
 
 **Live:** https://simpleday.pages.dev
 
@@ -14,21 +13,17 @@ fast, portable and entirely yours.
 
 - **Week and day views.** See the week's days at a glance, then open any day
   as an hour-by-hour plan. Drag a block to reschedule it.
-- **Clear and quick to use.** Add an activity in one line, or set its date, time,
-  length and reminder with small pickers. Activities without a fixed time follow
-  the one before, so moving one time reflows the rest of the day.
 - **Reminders on Telegram**, right at the start time by default, or 5, 10 or any
-  number of minutes before. There's also an optional morning summary of your day.
+  number of minutes before.
 - **Calendar import.** Bring in events from Google Calendar, Apple Calendar or
-  Outlook with an `.ics` file, including repeating events.
-- **Lightweight.** No account and no sign-up. It works offline and installs on
+  Outlook with an `.ics` file.
+- **No account and no sign-up.** No account and no sign-up. It works offline and installs on
   your phone like an app.
 - **Plain text as the ground truth.** Everything you see is stored as simple,
-  readable text, and you can edit it directly at any time
+  readable text, and you can edit it directly
   (see [The text format](#the-text-format)).
 - **Private.** Your plan stays in your browser. Sync between devices and
-  reminders go through your own free Cloudflare worker, never someone else's
-  server.
+  reminders go through your own free Cloudflare worker.
 
 ## Setting up reminders
 
