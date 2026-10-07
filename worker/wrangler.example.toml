@@ -1,0 +1,14 @@
+name = "dayflow"
+main = "worker.js"
+compatibility_date = "2025-10-01"
+
+# 1) Run:  wrangler kv namespace create DAYFLOW
+# 2) Paste the returned id below, then:  wrangler deploy
+#    (copy this file to wrangler.toml first; wrangler.toml is git-ignored)
+[[kv_namespaces]]
+binding = "DAYFLOW"
+id = "PASTE_YOUR_KV_NAMESPACE_ID_HERE"
+
+# Check for due notifications every minute (free tier covers this easily)
+[triggers]
+crons = ["* * * * *"]

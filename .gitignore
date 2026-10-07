@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dist-ssr/
+
+# Cloudflare Wrangler local state
+.wrangler/
+.dev.vars
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+
+# editors / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.local
+
+# Cloudflare Worker config with your own KV namespace id (template: worker/wrangler.example.toml)
+worker/wrangler.toml
