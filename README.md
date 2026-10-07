@@ -36,7 +36,7 @@ on Telegram.
    and follow the steps. Paste the bot token into SimpleDay → Settings, send your
    new bot any message, then press **Detect** next to Chat ID.
 2. **Deploy the worker.** You need a computer with [Node.js](https://nodejs.org)
-   and a copy of this project (`git clone https://github.com/xiaohanp/dayflow.git`,
+   and a copy of this project (`git clone https://github.com/xiaohanp/simple_day.git`,
    or **Code → Download ZIP** on GitHub). Then, in the project folder:
    ```bash
    npm install -g wrangler
