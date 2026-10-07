@@ -3,41 +3,43 @@
 A minimal day planner: your week at a glance, your day hour by hour.
 
 SimpleDay has a clean week overview shows what's
-coming, an hour-by-hour plan shows exactly how today fits together, and a
+coming, an hour-by-hour plan shows exactly how today fits together, and an optional Telegram
 reminder reaches your phone when it's time. Underneath, your whole plan is plain text, so it stays
 fast, portable and private.
 
 **Live:** https://simpleday.pages.dev
 
+![SimpleDay: week overview, hour-by-hour day plan and the plain text underneath](teaser/simpleday-teaser.png)
+
 ## Features
 
 - **Week and day views.** See the week's days at a glance, then open any day
-  as an hour-by-hour plan. Drag a block to reschedule it.
-- **Reminders on Telegram**, right at the start time by default, or 5, 10 or any
-  number of minutes before.
+  as an hour-by-hour plan.
+- **Reminders on Telegram**, right at the start time by default.
 - **Calendar import.** Bring in events from Google Calendar, Apple Calendar or
   Outlook with an `.ics` file.
-- **No account and no sign-up.** No account and no sign-up. It works offline and installs on
+- **No account and no sign-up.** SimpleDay works offline and installs on
   your phone like an app.
-- **Plain text as the ground truth.** Everything you see is stored as simple,
-  readable text, and you can edit it directly
+- **Plain text as the ground truth.** Everything you planned is stored as editable plain text
   (see [The text format](#the-text-format)).
 - **Private.** Your plan stays in your browser. Sync between devices and
   reminders go through your own free Cloudflare worker.
 
-## Setting up reminders
+## How do I use SimpleDay?
+
+SimpleDay works fully in your browser https://simpleday.pages.dev.
+However, I highly recommend following the steps below to sync your plans between devices and get notifications on your phone through Telegram.
 
 Reminders are sent by a small Cloudflare Worker that you deploy to your own
-free Cloudflare account. The app works out when each reminder should fire and
-stores the list in the worker. The worker checks every minute and messages you
-on Telegram.
+free Cloudflare account.
 
 1. **Create a Telegram bot.** In Telegram, message **@BotFather**, send `/newbot`
    and follow the steps. Paste the bot token into SimpleDay → Settings, send your
    new bot any message, then press **Detect** next to Chat ID.
-2. **Deploy the worker.** You need a computer with [Node.js](https://nodejs.org)
-   and a copy of this project (`git clone https://github.com/xiaohanp/simple_day.git`,
-   or **Code → Download ZIP** on GitHub). Then, in the project folder:
+2. **Deploy the worker.** I recommend using a computer with [Node.js](https://nodejs.org) to do this setup (No computer? See [Setting up the worker without a computer](#setting-up-the-worker-without-a-computer)
+   at the end.)
+   To set up this on a computer, you need a copy of this project (`git clone https://github.com/xiaohanp/simple_day.git`,
+   or **Code → Download ZIP** on GitHub). Then in the project folder run:
    ```bash
    npm install -g wrangler
    wrangler login                            # opens Cloudflare in your browser
@@ -46,10 +48,15 @@ on Telegram.
    wrangler kv namespace create SIMPLEDAY    # paste the printed id into wrangler.toml
    wrangler deploy                           # prints your worker URL
    ```
-   No computer? See [Setting up the worker without a computer](#setting-up-the-worker-without-a-computer)
-   at the end.
-3. **Connect the app.** Paste the worker URL into Settings → Worker URL, then
+3. **Connect the app.** Paste the worker URL into SimpleDay Settings → Worker URL, then
    press **Send test notification**.
+4. **Install it on your phone.** Open https://simpleday.pages.dev in your phone's
+   browser and add it to your home screen. It then opens full screen like a
+   normal app and works offline.
+   - **Android (Chrome):** tap the **⋮** menu → **Install app** (on some phones
+     it's called **Add to Home screen**).
+   - **iPhone / iPad:** open the site in **Safari**, tap the **Share** button
+     (the square with an arrow) → **Add to Home Screen** → **Add**.
 
 ### Using another device or a new address
 
@@ -58,11 +65,7 @@ first device. The secret key is generated the first time you open the app, so
 keep it somewhere safe. Anyone with both your worker URL and key can read and
 change your plan.
 
-A new device or address starts with a sample plan. Before entering the key,
-paste your real plan into the text panel. Otherwise the sample is uploaded over
-your plan as soon as the key matches.
-
-## Development
+## Develop SimpleDay
 
 Requires Node.js 20+.
 
@@ -84,7 +87,7 @@ wrangler pages deploy dist --project-name simpleday --branch main
 
 The first run creates the Pages project. Deploy to the production branch you
 chose there (`main`), so the site goes live at `https://<project>.pages.dev`
-instead of a preview URL. Any other static host works too: just serve `dist/`.
+instead of a preview URL.
 
 ### Deploying the worker
 
