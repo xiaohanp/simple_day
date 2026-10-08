@@ -42,6 +42,7 @@ const Composer = forwardRef(function Composer({ draft, setDraft, onAdd, onImport
         <input
           ref={inputRef}
           className="df-title-input"
+          autoComplete="off"
           placeholder="Add an activity…"
           value={draft.title}
           onChange={(e) => setDraft({ ...draft, title: e.target.value })}

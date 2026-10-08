@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { backdropProps } from '../lib/utils.ts';
 import { useState } from 'react';
 import { detectChatId } from '../lib/store.js';
 import workerCode from '../../worker/worker.js?raw';
@@ -79,7 +80,7 @@ export default function Settings({ settings, onChange, onTest, onClose, syncStat
     <div
       className="fixed inset-0 z-50 flex justify-end"
       style={{ background: 'rgba(10,10,10,0.28)' }}
-      onClick={onClose}
+      {...backdropProps(onClose)}
     >
       <div
         className="h-full overflow-y-auto df-scroll"

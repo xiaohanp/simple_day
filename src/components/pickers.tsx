@@ -288,6 +288,7 @@ export function ItemEditor({ value, onChange, onDelete, onMove, onClose, marked,
     <div className="df-editor-card" onClick={(e) => e.stopPropagation()}>
       <input
         className="df-title-input"
+        autoComplete="off"
         value={title}
         autoFocus={!compact}
         placeholder="What is it?"

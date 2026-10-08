@@ -1,66 +1,27 @@
 // The schedule you start with — edit freely, it's just text.
-export const DEFAULT_TEXT = `## Tue Oct 6 2026 — light day
-Skim reporters' documents 1h
-French 30m
+// A sample week starting today, so the example never shows stale dates.
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-## Wed Oct 7
-09:00 Thesis writing 2h !15
-Designtrace code cleanup 4h
-French 30m
+const SAMPLE_DAYS = [
+  ['getting started', ['09:00 Plan the week 30m !10', 'Deep work 2h', 'Walk 30m']],
+  ['', ['09:00 Deep work 3h !15', '13:00 Team meeting 1h !10', 'Reply to emails 30m']],
+  ['', ['09:00 Deep work 3h !15', 'Groceries 45m', 'Read 30m']],
+  ['', ['10:00 Dentist 1h !30', 'Deep work 2h', 'Walk 30m']],
+  ['light day', ['Tidy up notes 1h', 'Call a friend 30m']],
+  ['', ['Exercise 1h', 'Rest']],
+  ['', ['Weekly review 30m', 'Rest']],
+];
 
-## Thu Oct 8
-09:00 Thesis writing 4h !15
-French 30m
+function heading(d) {
+  return `${WEEKDAYS[d.getDay()]} ${MONTHS[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+}
 
-## Fri Oct 9
-09:00 Thesis writing 4h !15
-French 30m
+function buildDefaultText(today = new Date()) {
+  return SAMPLE_DAYS.map(([note, items], i) => {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+    return `## ${heading(d)}${note ? ` — ${note}` : ''}\n${items.join('\n')}\n`;
+  }).join('\n');
+}
 
-## Sat Oct 10 — light admin
-UIST web chair job 2h
-French 30m
-
-## Sun Oct 11
-French 30m
-Rest
-
-## Mon Oct 12
-09:00 CHI reviews batch 1 4h !15
-French 30m
-
-## Tue Oct 13
-09:00 CHI reviews batch 2 4h !15
-French 30m
-
-## Wed Oct 14
-09:00 Thesis writing 4h !15
-French 30m
-
-## Thu Oct 15
-09:00 Thesis writing 4h !15
-14:00 Car review 2h !30
-Confirm travel details 15m
-French 30m
-
-## Fri Oct 16 — travel to Sweden
-07:00 Pack and head out 1h !60
-Thesis top-up on the train 2h
-French 30m
-
-## Sat Oct 17 — light admin
-Clean laptop 1h
-Message Fanis 15m
-French 30m
-
-## Sun Oct 18
-French 30m
-Rest
-
-## Mon Oct 19
-09:00 Thesis final wrap-up 4h !15
-French 30m
-
-## Tue Oct 20 — Sweden
-09:00 Thesis top-up 2h !15
-French 30m
-`;
+export const DEFAULT_TEXT = buildDefaultText();

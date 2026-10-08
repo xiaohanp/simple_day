@@ -1,8 +1,10 @@
 // @ts-nocheck
+import { backdropProps } from '../lib/utils.ts';
+
 // Fallback: the underlying plain text, for bulk edits and day notes.
 export default function TextPanel({ text, onChange, onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" style={{ background: 'rgba(10,10,10,0.28)' }} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex justify-end" style={{ background: 'rgba(10,10,10,0.28)' }} {...backdropProps(onClose)}>
       <div
         className="h-full flex flex-col"
         style={{ width: 'min(520px, 100%)', background: 'var(--paper)', borderLeft: '1px solid var(--line)' }}

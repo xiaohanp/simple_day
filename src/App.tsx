@@ -13,6 +13,7 @@ import DayPlan from './components/DayPlan.tsx';
 import TextPanel from './components/TextPanel.tsx';
 import { ItemEditor } from './components/pickers.tsx';
 import { useIsMobile } from './hooks/use-mobile.ts';
+import { backdropProps } from './lib/utils.ts';
 
 const defaultSettings = () => ({
   workerUrl: '',
@@ -314,7 +315,7 @@ export default function App() {
       </button>
       {composerOpen && (
         <div className="md:hidden fixed inset-0 z-40 flex flex-col justify-end" style={{ background: 'rgba(10,10,10,0.28)' }}
-          onClick={() => setComposerOpen(false)}>
+          {...backdropProps(() => setComposerOpen(false))}>
           <div className="df-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
               <span className="label" style={{ margin: 0 }}>New activity</span>
