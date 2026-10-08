@@ -180,9 +180,9 @@ export default function App() {
     onUpdate(it.line, { ...itemValue(it, dateISO), startMin }, dateISO);
   };
 
-  // clicking an empty slot in the day plan pre-fills the composer's time
-  const onSlot = (min) => {
-    setDraft((d) => ({ ...d, startMin: min }));
+  // clicking an empty slot in the day plan pre-fills the composer's time; dragging also sets the length
+  const onSlot = (min, durationMin) => {
+    setDraft((d) => ({ ...d, startMin: min, ...(durationMin ? { durationMin } : {}) }));
     if (isMobile) setComposerOpen(true);
     else requestAnimationFrame(() => composerRef.current?.focus());
   };

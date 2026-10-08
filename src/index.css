@@ -244,6 +244,8 @@
 .df-block.is-short { flex-direction: row; align-items: center; justify-content: space-between; gap: 6px; padding-top: 0; padding-bottom: 0; }
 .df-block.is-short > span:first-child { flex-shrink: 1; min-width: 0; }
 .df-block { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.df-grid { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.df-block.is-ghost { pointer-events: none; border-style: dashed; border-left-style: solid; background: var(--paper); }
 .df-block.is-dragging {
   z-index: 5; cursor: grabbing; border-color: var(--ink);
   box-shadow: 0 12px 28px -10px rgba(10,10,10,.4);
