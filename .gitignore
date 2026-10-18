@@ -27,3 +27,6 @@ npm-debug.log*
 
 # Cloudflare Worker config with your own KV namespace id (template: worker/wrangler.example.toml)
 worker/wrangler.toml
+
+# throwaway web push test kit (holds generated VAPID keys)
+push-test/

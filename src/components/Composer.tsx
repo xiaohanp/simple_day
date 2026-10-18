@@ -1,13 +1,13 @@
 // @ts-nocheck
 import { forwardRef, useEffect, useRef, useState } from 'react';
-import { Plus, CalendarArrowDown } from 'lucide-react';
+import { Plus, CalendarArrowDown, X } from 'lucide-react';
 import { parseItemLine } from '../lib/parser.js';
 import { ItemFields } from './pickers.tsx';
 
 // Quick-add block. `draft` lives in App so clicking an empty slot in the day
 // plan can pre-fill the time. Typing "French 30m" or "14:00 Call 1h" in the
 // title also works: anything recognised there overrides the chips.
-const Composer = forwardRef(function Composer({ draft, setDraft, onAdd, onImport, marked, autoLabel }, inputRef) {
+const Composer = forwardRef(function Composer({ draft, setDraft, onAdd, onImport, marked, autoLabel, onClose }, inputRef) {
   const fileRef = useRef(null);
   const [note, setNote] = useState('');
   useEffect(() => {
@@ -55,6 +55,11 @@ const Composer = forwardRef(function Composer({ draft, setDraft, onAdd, onImport
         <button type="submit" className="df-add-btn" aria-label="Add" disabled={!draft.title.trim()}>
           <Plus size={16} strokeWidth={2.4} />
         </button>
+        {onClose && (
+          <button type="button" className="df-icon-btn" aria-label="Close" onClick={onClose}>
+            <X size={17} strokeWidth={2} />
+          </button>
+        )}
       </div>
       <div style={{ marginTop: 8 }}>
         <ItemFields value={draft} onChange={setDraft} marked={marked} autoLabel={autoLabel} />

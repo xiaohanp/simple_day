@@ -317,11 +317,7 @@ export default function App() {
         <div className="md:hidden fixed inset-0 z-40 flex flex-col justify-end" style={{ background: 'rgba(10,10,10,0.28)' }}
           {...backdropProps(() => setComposerOpen(false))}>
           <div className="df-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-              <span className="label" style={{ margin: 0 }}>New activity</span>
-              <button className="btn btn-quiet" style={{ padding: '3px 12px', fontSize: 12 }} onClick={() => setComposerOpen(false)}>Close</button>
-            </div>
-            <Composer ref={composerRef} {...composerProps} />
+            <Composer ref={composerRef} {...composerProps} onClose={() => setComposerOpen(false)} />
           </div>
         </div>
       )}

@@ -1,24 +1,52 @@
 // @ts-nocheck
 // Interactive selectors shared by the composer and every item editor:
 // date (calendar), start time, duration and reminder. Each one is a chip that
-// opens a small popover.
+// opens a small popover on desktop, or a bottom sheet over a dimmed screen on phones.
 import { useEffect, useRef, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
-import { CalendarDays, Clock, Timer, Bell, BellOff, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
+import { CalendarDays, Clock, Timer, Bell, BellOff, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Trash2, X } from 'lucide-react';
 import { fmtTime, fmtDur, toISODate, dayLabel } from '../lib/parser.js';
 import { isoToDate, shiftISO } from '../lib/edit.js';
+import { useIsMobile } from '../hooks/use-mobile.ts';
 
-function Chip({ icon: Icon, label, muted, open, onOpenChange, children, title }) {
+function Chip({ icon: Icon, label, muted, open, onOpenChange, children, title, heading }) {
+  const isMobile = useIsMobile();
+  const trigger = (
+    <button type="button" className={`df-chip${muted ? ' is-muted' : ''}`} title={title}
+      onClick={isMobile ? () => onOpenChange(true) : undefined}>
+      {Icon && <Icon size={13} strokeWidth={2} />}
+      {label && <span>{label}</span>}
+    </button>
+  );
+
+  // Phones: a modal sheet, so the picker sits low (above the keyboard) instead of
+  // floating over the editor. Being a Radix layer, it doesn't dismiss the editor popover beneath.
+  if (isMobile) {
+    return (
+      <Dialog.Root open={open} onOpenChange={onOpenChange}>
+        {trigger}
+        <Dialog.Portal>
+          <Dialog.Overlay className="df-pick-overlay" />
+          <Dialog.Content className="df-pick-sheet df-sheet" aria-describedby={undefined}
+            onOpenAutoFocus={(e) => e.preventDefault()}>
+            <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+              <Dialog.Title className="label" style={{ margin: 0 }}>{heading}</Dialog.Title>
+              <Dialog.Close className="df-icon-btn" aria-label="Close"><X size={16} /></Dialog.Close>
+            </div>
+            {children}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    );
+  }
+
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
-      <Popover.Trigger asChild>
-        <button type="button" className={`df-chip${muted ? ' is-muted' : ''}`} title={title}>
-          {Icon && <Icon size={13} strokeWidth={2} />}
-          {label && <span>{label}</span>}
-        </button>
-      </Popover.Trigger>
+      <Popover.Trigger asChild>{trigger}</Popover.Trigger>
       <Popover.Portal>
         <Popover.Content className="df-pop" align="start" sideOffset={6} collisionPadding={12}>
+          <div className="label" style={{ fontSize: 10, margin: '0 0 8px' }}>{heading}</div>
           {children}
         </Popover.Content>
       </Popover.Portal>
@@ -56,7 +84,7 @@ export function MonthGrid({ value, onPick, marked }) {
     new Date(view.getFullYear(), view.getMonth(), 1 - offset + i));
 
   return (
-    <div style={{ width: 252 }}>
+    <div className="df-pick-w">
       <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
         <button type="button" className="df-icon-btn" aria-label="Previous month"
           onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}>
@@ -100,7 +128,7 @@ export function DateChip({ value, onChange, marked }) {
   const todayISO = toISODate(new Date());
   const pick = (iso) => { onChange(iso); setOpen(false); };
   return (
-    <Chip icon={CalendarDays} label={shortDayLabel(value)} muted={!value} open={open} onOpenChange={setOpen} title="Date">
+    <Chip icon={CalendarDays} label={shortDayLabel(value)} muted={!value} open={open} onOpenChange={setOpen} title="Date" heading="Date">
       <div className="flex gap-1.5" style={{ marginBottom: 10 }}>
         <Opt on={value === todayISO} onClick={() => pick(todayISO)}>Today</Opt>
         <Opt on={value === shiftISO(todayISO, 1)} onClick={() => pick(shiftISO(todayISO, 1))}>Tomorrow</Opt>
@@ -132,8 +160,8 @@ export function TimeChip({ value, onChange, autoLabel = 'after previous' }) {
   }, [open, h]);
 
   return (
-    <Chip icon={Clock} label={hasTime ? fmtTime(value) : autoLabel} muted={!hasTime} open={open} onOpenChange={setOpen} title="Start time">
-      <div style={{ width: 252 }}>
+    <Chip icon={Clock} label={hasTime ? fmtTime(value) : autoLabel} muted={!hasTime} open={open} onOpenChange={setOpen} title="Start time" heading="Start time">
+      <div className="df-pick-w">
         <Opt on={!hasTime} className="w-full justify-start" style={{ padding: '0 10px' }}
           onClick={() => { onChange(null); setOpen(false); }}>
           No fixed time · {autoLabel}
@@ -186,8 +214,8 @@ export function DurationChip({ value, onChange }) {
   const pick = (d) => { onChange(d || null); setOpen(false); };
   const setCustom = (hh, mm) => onChange(Math.max(0, hh) * 60 + Math.max(0, Math.min(59, mm)) || null);
   return (
-    <Chip icon={Timer} label={v ? fmtDur(v) : 'duration'} muted={!v} open={open} onOpenChange={setOpen} title="Duration">
-      <div style={{ width: 252 }}>
+    <Chip icon={Timer} label={v ? fmtDur(v) : 'duration'} muted={!v} open={open} onOpenChange={setOpen} title="Duration" heading="Duration">
+      <div className="df-pick-w">
         <div className="grid grid-cols-4" style={{ gap: 3 }}>
           {DURATIONS.map((d) => (
             <Opt key={d} on={v === d} onClick={() => pick(d)}>{fmtDur(d)}</Opt>
@@ -232,9 +260,8 @@ export function ReminderChip({ value, onChange }) {
   const custom = typeof v === 'number' && !REMINDERS.includes(v) ? v : '';
   return (
     <Chip icon={v === false ? BellOff : Bell} label={label} muted={v === null || v === false}
-      open={open} onOpenChange={setOpen} title={`Telegram reminder${v === null ? ' (on time)' : ''} — only for timed items`}>
-      <div style={{ width: 240 }}>
-        <div className="label" style={{ fontSize: 10, marginBottom: 6 }}>Remind me</div>
+      open={open} onOpenChange={setOpen} title={`Telegram reminder${v === null ? ' (on time)' : ''} — only for timed items`} heading="Remind me">
+      <div className="df-pick-w">
         <div className="grid grid-cols-2" style={{ gap: 3 }}>
           {REMINDERS.map((r) => <Opt key={r ?? 0} on={v === r} onClick={() => pick(r)}>{remindLabel(r)}</Opt>)}
           <Opt on={v === false} onClick={() => pick(false)}>off</Opt>

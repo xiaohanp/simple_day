@@ -267,6 +267,12 @@
   max-height: 100%; overflow-y: auto; /* stays reachable when the keyboard shrinks the viewport */
   animation: df-sheet .2s ease-out;
 }
+/* chip pickers: popover width on desktop, full-width bottom sheet on phones */
+.df-pick-w { width: 252px; }
+.df-pick-overlay { position: fixed; inset: 0; z-index: 70; background: rgba(10,10,10,.28); }
+.df-pick-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 71; box-shadow: 0 -10px 30px -12px rgba(10,10,10,.25); }
+.df-pick-sheet .df-pick-w { width: 100%; }
+.df-pick-sheet .df-opt { height: 38px; }
 @keyframes df-sheet { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {

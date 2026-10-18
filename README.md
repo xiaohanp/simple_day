@@ -27,40 +27,89 @@ fast, portable and private.
 
 ## How do I use SimpleDay?
 
-SimpleDay works fully in your browser https://simpleday.pages.dev.
-However, I highly recommend following the steps below to sync your plans between devices and get notifications on your phone through Telegram.
+SimpleDay works right away in your browser at https://simpleday.pages.dev.
+To get reminders on your phone and sync your plan between devices, follow the
+three steps below. They match **Settings → Setup guide** in the app.
 
-Reminders are sent by a small Cloudflare Worker that you deploy to your own
-free Cloudflare account.
+### 1. Create your Telegram bot
 
-1. **Create a Telegram bot.** In Telegram, message **@BotFather**, send `/newbot`
-   and follow the steps. Paste the bot token into SimpleDay → Settings, send your
-   new bot any message, then press **Detect** next to Chat ID.
-2. **Deploy the worker.** I recommend using a computer with [Node.js](https://nodejs.org) to do this setup (No computer? See [Setting up the worker without a computer](#setting-up-the-worker-without-a-computer)
-   at the end.)
-   To set up this on a computer, you need a copy of this project (`git clone https://github.com/xiaohanp/simple_day.git`,
-   or **Code → Download ZIP** on GitHub). Then in the project folder run:
+1. In Telegram, open **@BotFather** and send `/newbot`.
+2. Pick a name and username. BotFather replies with your **bot token**. Paste
+   it into SimpleDay → Settings → **Bot token**.
+3. Open your new bot's chat and send it any message (e.g. "hi").
+4. Back in SimpleDay, press **Detect** next to **Chat ID**.
+
+### 2. Set up your reminder server
+
+Reminders are sent by a small Cloudflare Worker in your own free Cloudflare
+account. No card is needed. Pick **one** of the two methods; both end with the
+same worker.
+
+<table>
+<tr>
+<th width="50%">Method A · In the browser</th>
+<th width="50%">Method B · Command line</th>
+</tr>
+<tr>
+<td valign="top">
+
+Works on a phone or a computer. Nothing to install.
+
+1. Sign up at [dash.cloudflare.com](https://dash.cloudflare.com/sign-up).
+2. **Storage & Databases → KV → Create**. Name it `simpleday`.
+3. **Workers & Pages → Create → Start with Hello World**. Name it
+   `simpleday` and press **Deploy**.
+4. Press **Edit code**, delete everything, paste the SimpleDay worker code
+   and press **Deploy**. Get the code from the **Copy worker code** button
+   in the app's setup guide, or from [`worker/worker.js`](worker/worker.js).
+5. Back on the worker: **Bindings → Add binding → KV namespace**. Variable
+   name `SIMPLEDAY` (capitals), namespace `simpleday`. Save.
+6. **Settings → Trigger events → Add → Cron triggers**, every minute
+   (`* * * * *`). Save.
+7. Copy the worker's address (it ends in `.workers.dev`).
+
+</td>
+<td valign="top">
+
+Needs a computer with [Node.js](https://nodejs.org) and
+[git](https://git-scm.com).
+
+1. Get the project: `git clone https://github.com/xiaohanp/simple_day.git`,
+   or **Code → Download ZIP** on GitHub.
+2. In the project folder, run:
    ```bash
    npm install -g wrangler
-   wrangler login                            # opens Cloudflare in your browser
+   wrangler login       # opens Cloudflare in your browser
    cd worker
    cp wrangler.example.toml wrangler.toml
-   wrangler kv namespace create SIMPLEDAY    # paste the printed id into wrangler.toml
-   wrangler deploy                           # prints your worker URL
+   wrangler kv namespace create SIMPLEDAY
    ```
-3. **Connect the app.** Paste the worker URL into SimpleDay Settings → Worker URL, then
-   press **Send test notification**.
-4. **Install it on your phone.** Open https://simpleday.pages.dev in your phone's
-   browser and add it to your home screen. It then opens full screen like a
-   normal app and works offline.
-   - **Android (Chrome):** tap the **⋮** menu → **Install app** (on some phones
-     it's called **Add to Home screen**).
-   - **iPhone / iPad:** open the site in **Safari**, tap the **Share** button
-     (the square with an arrow) → **Add to Home Screen** → **Add**.
+3. Paste the printed `id` into `wrangler.toml`, replacing
+   `PASTE_YOUR_KV_NAMESPACE_ID_HERE`.
+4. Run `wrangler deploy`. It sets up the every-minute trigger for you.
+5. Copy the worker address it prints (it ends in `.workers.dev`).
+
+</td>
+</tr>
+</table>
+
+Then, for either method: paste the address into SimpleDay → Settings →
+**Worker URL** and press **Send test notification**. A message should arrive
+in Telegram.
+
+### 3. Install SimpleDay on your phone
+
+Open https://simpleday.pages.dev on your phone and add it to your home screen.
+It then opens full screen like a normal app and works offline.
+
+- **Android (Chrome):** tap the **⋮** menu → **Install app** (on some phones
+  it's **Add to Home screen**).
+- **iPhone / iPad (Safari):** tap **Share** (the square with an arrow) →
+  **Add to Home Screen** → **Add**.
 
 ### Using another device or a new address
 
-Open Settings there and enter the **same worker URL and secret key** as on your
+Open Settings there and enter the **same Worker URL and Secret key** as on your
 first device. The secret key is generated the first time you open the app, so
 keep it somewhere safe. Anyone with both your worker URL and key can read and
 change your plan.
@@ -71,7 +120,7 @@ Requires Node.js 20+.
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+npm run dev
 npm run build      # type-check + production build into dist/
 npm run lint
 ```
@@ -108,28 +157,10 @@ storage. If you set up reminders, it's also stored in your worker's KV storage
 in your own Cloudflare account, together with your Telegram bot token. Nothing
 is sent anywhere else, apart from the reminder messages to Telegram.
 
-## Setting up the worker without a computer
-
-A backup route if you only have a phone or tablet. Everything happens in the
-Cloudflare dashboard in your browser. It's fiddlier on a small screen, but
-nothing needs installing.
-
-1. Sign up at [dash.cloudflare.com](https://dash.cloudflare.com/sign-up). No card
-   needed.
-2. **Storage & Databases → KV → Create**, named `simpleday`.
-3. **Workers & Pages → Create → Start with Hello World**, named `simpleday`,
-   then **Deploy**.
-4. **Edit code**, delete everything, paste the SimpleDay worker code and
-   **Deploy**. The app has a **Copy worker code** button in Settings → Setup
-   guide, or copy [`worker/worker.js`](worker/worker.js).
-5. On the worker: **Bindings → Add binding → KV namespace**. Variable name
-   `SIMPLEDAY` (capitals), namespace `simpleday`.
-6. **Settings → Trigger events → Add → Cron triggers**, every minute
-   (`* * * * *`).
-7. Copy the worker's `.workers.dev` address into SimpleDay → Settings → Worker
-   URL, then press **Send test notification**.
-
 ## The text format
+
+<details>
+<summary>How a plan is written as plain text</summary>
 
 Under the hood, a plan is plain text. Open the text panel in the app to read or
 edit it directly; the views and the text always stay in sync.
@@ -157,3 +188,5 @@ Buy milk                         no time at all, just a task
 | Lines before the first `##` heading                                                | Inbox: things not yet scheduled.                                       |
 
 Only items with a time get reminders.
+
+</details>

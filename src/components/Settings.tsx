@@ -217,17 +217,19 @@ export default function Settings({ settings, onChange, onTest, onClose, syncStat
                 <li><b>Settings → Trigger events → Add → Cron triggers</b>, every minute (<span className="font-mono">* * * * *</span>). Save.</li>
                 <li>Copy the worker's address (it ends in <span className="font-mono">.workers.dev</span>) into <b>Worker URL</b> above, then press <b>Send test notification</b>.</li>
               </ol>
-              <div style={{ marginTop: 8 }}>The free plan covers this many times over. Prefer the command line? See <span className="font-mono">worker/README.md</span> in the project.</div>
+              <div style={{ marginTop: 8 }}>
+                The free plan covers this many times over. Prefer the command line? See method B in the{' '}
+                <a href="https://github.com/xiaohanp/simple_day#2-set-up-your-reminder-server" target="_blank" rel="noreferrer" style={{ textDecoration: 'underline' }}>README</a>.
+              </div>
             </Guide>
 
-            <Guide title="3 · Make Telegram reliable on your Xiaomi (5 min)" open={openGuide === 'c'} onToggle={() => setOpenGuide(openGuide === 'c' ? '' : 'c')}>
-              <ol style={{ paddingLeft: 18, listStyle: 'decimal' }}>
-                <li>Settings → Apps → Manage apps → <b>Telegram</b> → Battery saver → <b>No restrictions</b>.</li>
-                <li>Same screen → enable <b>Autostart</b>.</li>
-                <li>Open recents, pull Telegram down / tap the lock icon to <b>lock it</b>.</li>
-                <li>Settings → Notifications → Telegram → allow everything, including lock screen.</li>
-              </ol>
-              <div style={{ marginTop: 8 }}>Do this once and Telegram pushes arrive even with the screen off.</div>
+            <Guide title="3 · Install SimpleDay on your phone (1 min)" open={openGuide === 'c'} onToggle={() => setOpenGuide(openGuide === 'c' ? '' : 'c')}>
+              <div style={{ marginBottom: 8 }}>Open this site on your phone, then add it to your home screen. It opens full screen like a normal app and works offline.</div>
+              <ul style={{ paddingLeft: 18, listStyle: 'disc' }}>
+                <li><b>Android (Chrome):</b> tap the <b>⋮</b> menu → <b>Install app</b> (on some phones it's <b>Add to Home screen</b>).</li>
+                <li><b>iPhone / iPad (Safari):</b> tap <b>Share</b> (the square with an arrow) → <b>Add to Home Screen</b> → <b>Add</b>.</li>
+              </ul>
+              <div style={{ marginTop: 8 }}>On a new device, enter the same <b>Worker URL</b> and <b>Secret key</b> as here to get the same plan.</div>
             </Guide>
           </div>
         </div>
