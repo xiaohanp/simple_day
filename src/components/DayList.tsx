@@ -11,7 +11,10 @@ function Row({ it, open, onClick }) {
   return (
     <button type="button" className={`df-row${open ? ' is-open' : ''}`} onClick={onClick}>
       <span className="df-row-dot" style={{ background: it.floating ? 'transparent' : 'var(--ink)', borderColor: 'var(--ink-3)' }} />
-      <span className="truncate flex-1 text-left">{it.title}</span>
+      <span className="flex-1 min-w-0 text-left df-wrap">
+        {it.title}
+        {it.location && <span className="block" style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>@ {it.location}</span>}
+      </span>
       {it.durationMin ? <span className="font-mono shrink-0" style={{ fontSize: 11, color: 'var(--ink-3)' }}>{fmtDur(it.durationMin)}</span> : null}
     </button>
   );

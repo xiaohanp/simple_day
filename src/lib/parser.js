@@ -106,8 +106,9 @@ export function parseDayHeading(raw, today = new Date()) {
 const TIME_RE = /^(\d{1,2}):(\d{2})(?:\s*[-–]\s*(\d{1,2}):(\d{2}))?\s+/;
 const DUR_RE = /(?:^|\s)(\d+(?:\.\d+)?)\s*h(?:\s*(\d{1,2})\s*m)?\+?(?=\s|$)|(?:^|\s)(\d{1,3})\s*m(?:in)?\+?(?=\s|$)/i;
 const REMIND_RE = /(?:^|\s)!(\d{1,3})\s*(h|m)?(?=\s|$)|(?:^|\s)!(off)(?=\s|$)/i;
+const LOC_RE = /(?:^|\s)@\s*(.*)$/;
 
-// Parse one item line -> { startMin, endMin, durationMin, remindMin|null|false, title, raw }
+// Parse one item line -> { startMin, endMin, durationMin, remindMin|null|false, title, location|null, raw }
 export function parseItemLine(line) {
   let s = line.trim();
   if (!s) return null;
@@ -120,23 +121,36 @@ export function parseItemLine(line) {
     s = s.slice(t[0].length);
   }
 
+  // "@ place" runs to the end of the line; tokens typed after it ("Lunch @ Cafe 1h") still count
+  let location = '';
+  const at = s.match(LOC_RE);
+  if (at) {
+    location = at[1].trim();
+    s = s.slice(0, at.index).trim();
+  }
+  const take = (re) => {
+    let m = s.match(re);
+    if (m) { s = s.replace(re, ' ').trim(); return m; }
+    m = location.match(re);
+    if (m) { location = location.replace(re, ' ').trim(); return m; }
+    return null;
+  };
+
   let remindMin = null; // null = use default, false = disabled, number = minutes
-  const r = s.match(REMIND_RE);
+  const r = take(REMIND_RE);
   if (r) {
     if (r[3]) remindMin = false;
     else remindMin = r[2] === 'h' ? (+r[1]) * 60 : (+r[1]);
-    s = s.replace(REMIND_RE, ' ').trim();
   }
 
   let durationMin = null;
-  const d = s.match(DUR_RE);
+  const d = take(DUR_RE);
   if (d) {
     if (d[1] !== undefined) {
       durationMin = Math.round(parseFloat(d[1]) * 60) + (d[2] ? +d[2] : 0);
     } else {
       durationMin = +d[3];
     }
-    s = s.replace(DUR_RE, ' ').trim();
   }
 
   if (endMin !== null && durationMin === null) {
@@ -150,6 +164,7 @@ export function parseItemLine(line) {
     startMin, endMin, durationMin,
     remindMin,
     title: s.replace(/\s{2,}/g, ' ').trim() || '(untitled)',
+    location: location.replace(/\s{2,}/g, ' ') || null,
     raw: line,
   };
 }
@@ -275,7 +290,7 @@ export function buildNotifications(parsed, settings, now = Date.now()) {
       out.push({
         key: `${day.dateISO}|${it.line}|${it.startMin}|${rem}`,
         fireAt,
-        text: `${rem ? `in ${fmtDur(rem)} · ` : ''}${fmtTime(it.startMin)}  ${it.title}${it.durationMin ? ` (${fmtDur(it.durationMin)})` : ''}`,
+        text: `${rem ? `in ${fmtDur(rem)} · ` : ''}${fmtTime(it.startMin)}  ${it.title}${it.durationMin ? ` (${fmtDur(it.durationMin)})` : ''}${it.location ? ` @ ${it.location}` : ''}`,
       });
     }
     // daily digest
@@ -285,7 +300,7 @@ export function buildNotifications(parsed, settings, now = Date.now()) {
       if (fireAt > now - 30 * 60000) {
         const timed = day.items.filter(i => i.startMin !== null);
         const untimed = day.items.filter(i => i.startMin === null);
-        const lines = timed.map(i => `${fmtTime(i.startMin)}  ${i.title}${i.durationMin ? ` (${fmtDur(i.durationMin)})` : ''}`);
+        const lines = timed.map(i => `${fmtTime(i.startMin)}  ${i.title}${i.durationMin ? ` (${fmtDur(i.durationMin)})` : ''}${i.location ? ` @ ${i.location}` : ''}`);
         if (untimed.length) lines.push(`anytime: ${untimed.map(i => i.title).join(', ')}`);
         out.push({
           key: `digest|${day.dateISO}|${settings.digestTime}|${day.items.length}|${lines.join('').length}`,

@@ -305,6 +305,7 @@ export default function DayPlan({ day, visible = true, selectedISO, onSelectDay,
                         {fmtTime(shownStart)}{shownEnd !== shownStart ? `–${fmtTime(shownEnd)}` : ''}
                         {it.durationMin ? ` · ${fmtDur(it.durationMin)}` : ''}
                         {it.floating && !dragging ? ' · flows' : ''}
+                        {it.location ? ` · @ ${it.location}` : ''}
                       </span>
                     ) : (
                       <span className="font-mono shrink-0" style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>{fmtTime(shownStart)}</span>

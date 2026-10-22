@@ -52,7 +52,7 @@ export default function App() {
   const [composerOpen, setComposerOpen] = useState(false); // mobile bottom sheet
   const [selectedISO, setSelectedISO] = useState(() => toISODate(new Date()));
   const [editing, setEditing] = useState(null); // { line, where: 'list' | 'plan' }
-  const [draft, setDraft] = useState({ title: '', startMin: null, durationMin: 30, remindMin: null });
+  const [draft, setDraft] = useState({ title: '', startMin: null, durationMin: 30, remindMin: null, location: '' });
   const [syncStatus, setSyncStatus] = useState('local only');
   const [, forceTick] = useReducer((x) => x + 1, 0);
   const composerRef = useRef(null);
@@ -124,7 +124,7 @@ export default function App() {
     const r = addItem(text, value);
     setText(r.text);
     setSelectedISO(value.dateISO);
-    setDraft((d) => ({ ...d, title: '', startMin: null }));
+    setDraft((d) => ({ ...d, title: '', startMin: null, location: '' }));
     setComposerOpen(false);
   };
 
@@ -272,7 +272,7 @@ export default function App() {
       </div>
 
       {/* Main split: days overview | hour-by-hour plan */}
-      <main className="flex-1 min-h-0 grid md:grid-cols-[310px_1fr] lg:grid-cols-[360px_1fr]">
+      <main className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[310px_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)]">
         <section
           className={`min-h-0 flex-col md:border-r ${mobileView === 'days' ? 'flex' : 'hidden'} md:flex`}
           style={{ borderColor: 'var(--line)' }}

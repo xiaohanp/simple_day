@@ -185,6 +185,7 @@ Buy milk                         no time at all, just a task
 | `30m`, `1h`, `1.5h`, `2h15m`                                                       | Duration.                                                              |
 | `!10`, `!1h`                                                                       | Reminder that many minutes or hours before the start.                  |
 | `!off`                                                                             | No reminder for this item.                                             |
+| `@ Room 204`                                                                       | Optional location, written at the end of the line.                     |
 | Lines before the first `##` heading                                                | Inbox: things not yet scheduled.                                       |
 
 Only items with a time get reminders.

@@ -33,6 +33,7 @@ const Composer = forwardRef(function Composer({ draft, setDraft, onAdd, onImport
       startMin: p.startMin ?? draft.startMin,
       durationMin: p.durationMin ?? draft.durationMin,
       remindMin: p.remindMin ?? draft.remindMin,
+      location: p.location ?? draft.location,
     });
   };
 

@@ -188,6 +188,7 @@ export function parseIcs(text, tz, now = new Date()) {
     }
     switch (name) {
       case 'SUMMARY': ev.title = unescape(value).trim(); break;
+      case 'LOCATION': ev.location = unescape(value).replace(/\s+/g, ' ').trim(); break;
       case 'DTSTART': ev.start = parseDate(value, params); break;
       case 'DTEND': ev.end = parseDate(value, params); break;
       case 'DURATION': ev.duration = parseDuration(value); break;
@@ -209,6 +210,7 @@ export function parseIcs(text, tz, now = new Date()) {
   for (const e of events) {
     if (!e.start || e.cancelled) continue;
     const title = e.title || 'Untitled';
+    const location = e.location || null;
     const exdates = new Set(e.exdates.map((d) => occKey(d, d.date)));
     const dates = e.rule && !e.recurId ? occurrences(e.start.date, e.rule, horizon) : [e.start.date];
     const remindMin = e.alarm > 0 ? e.alarm : null;
@@ -221,7 +223,7 @@ export function parseIcs(text, tz, now = new Date()) {
         const span = e.end ? daysBetween(e.start.date, e.end.date) : e.duration ? Math.ceil(e.duration / 1440) : 1;
         for (let i = 0; i < Math.min(Math.max(span, 1), MAX_ALLDAY_SPAN); i++) {
           const d = addDays(date, i);
-          if (d >= todayISO) items.push({ dateISO: d, startMin: null, durationMin: null, remindMin: null, title });
+          if (d >= todayISO) items.push({ dateISO: d, startMin: null, durationMin: null, remindMin: null, title, location });
         }
         continue;
       }
@@ -233,7 +235,7 @@ export function parseIcs(text, tz, now = new Date()) {
       }
       const w = wallIn(startMs, tz);
       if (w.date < todayISO) continue;
-      items.push({ dateISO: w.date, startMin: w.min, durationMin: durationMin > 0 ? durationMin : null, remindMin, title });
+      items.push({ dateISO: w.date, startMin: w.min, durationMin: durationMin > 0 ? durationMin : null, remindMin, title, location });
     }
   }
 

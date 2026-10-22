@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import * as Dialog from '@radix-ui/react-dialog';
-import { CalendarDays, Clock, Timer, Bell, BellOff, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Trash2, X } from 'lucide-react';
+import { CalendarDays, Clock, Timer, Bell, BellOff, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Trash2, X, MapPin } from 'lucide-react';
 import { fmtTime, fmtDur, toISODate, dayLabel } from '../lib/parser.js';
 import { isoToDate, shiftISO } from '../lib/edit.js';
 import { useIsMobile } from '../hooks/use-mobile.ts';
@@ -286,9 +286,45 @@ export function ReminderChip({ value, onChange }) {
   );
 }
 
+/* ---------------- Location ---------------- */
+
+// Commits on Done / Enter / close, so the text isn't rewritten on every keystroke.
+export function LocationChip({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState(value || '');
+  const commit = (v = text) => { const t = v.replace(/\s+/g, ' ').trim(); if (t !== (value || '')) onChange(t); };
+  const openChange = (o) => {
+    if (o) setText(value || '');
+    else commit();
+    setOpen(o);
+  };
+  return (
+    <Chip icon={MapPin} label={value || ''} muted={!value} open={open} onOpenChange={openChange} title="Location (optional)" heading="Location">
+      <div className="df-pick-w">
+        <div className="flex items-center gap-2">
+          <input
+            className="field"
+            style={{ fontSize: 13, padding: '6px 10px' }}
+            autoFocus
+            autoComplete="off"
+            placeholder="Where? e.g. Room 204"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); openChange(false); } }}
+          />
+          <Opt onClick={() => openChange(false)} style={{ padding: '0 12px' }}>Done</Opt>
+        </div>
+        {value && (
+          <Opt className="w-full" style={{ marginTop: 10 }} onClick={() => { setText(''); commit(''); setOpen(false); }}>No location</Opt>
+        )}
+      </div>
+    </Chip>
+  );
+}
+
 /* ---------------- Field row ---------------- */
 
-// value: { dateISO, startMin, durationMin, remindMin, title }
+// value: { dateISO, startMin, durationMin, remindMin, title, location }
 export function ItemFields({ value, onChange, marked, autoLabel }) {
   const set = (k) => (v) => onChange({ ...value, [k]: v });
   return (
@@ -297,6 +333,7 @@ export function ItemFields({ value, onChange, marked, autoLabel }) {
       <TimeChip value={value.startMin} onChange={set('startMin')} autoLabel={autoLabel} />
       <DurationChip value={value.durationMin} onChange={set('durationMin')} />
       <ReminderChip value={value.remindMin} onChange={set('remindMin')} />
+      <LocationChip value={value.location} onChange={set('location')} />
     </div>
   );
 }

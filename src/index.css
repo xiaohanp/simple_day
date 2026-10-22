@@ -219,10 +219,12 @@
   padding: 6px 8px 4px; background: none; border: none; cursor: pointer; text-align: left;
 }
 .df-row {
-  width: 100%; display: flex; align-items: center; gap: 8px;
+  width: 100%; display: flex; align-items: flex-start; gap: 8px;
   padding: 4px 8px; border-radius: 8px; min-height: 28px;
-  font-size: 13px; color: var(--ink-2); background: none; border: none; cursor: pointer;
+  font-size: 13px; line-height: 20px; color: var(--ink-2); background: none; border: none; cursor: pointer;
 }
+.df-row-dot { margin-top: 7px; }
+.df-wrap { overflow-wrap: anywhere; }
 .df-row:hover, .df-row.is-open { background: var(--paper); color: var(--ink); }
 .df-daycard:not(.is-sel) .df-row:hover, .df-daycard:not(.is-sel) .df-row.is-open { background: var(--paper-2); }
 .df-row-dot { width: 6px; height: 6px; border-radius: 50%; border: 1px solid; flex-shrink: 0; }

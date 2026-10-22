@@ -25,14 +25,16 @@ export function headingFor(iso) {
   return `## ${WD[d.getDay()]} ${MON[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
 }
 
-// { startMin|null, durationMin|null, remindMin: null|false|number, title } -> "09:00 Title 1h !15"
-export function serializeItem({ startMin, durationMin, remindMin, title }) {
+// { startMin|null, durationMin|null, remindMin: null|false|number, title, location } -> "09:00 Title 1h !15 @ Place"
+export function serializeItem({ startMin, durationMin, remindMin, title, location }) {
   const parts = [];
   if (startMin !== null && startMin !== undefined) parts.push(fmtTime(startMin));
   parts.push((title || '').trim() || 'Untitled');
   if (durationMin) parts.push(fmtDur(durationMin));
   if (remindMin === false) parts.push('!off');
   else if (typeof remindMin === 'number') parts.push(`!${remindMin}`);
+  const loc = (location || '').replace(/\s+/g, ' ').trim();
+  if (loc) parts.push(`@ ${loc}`);
   return parts.join(' ');
 }
 
@@ -44,6 +46,7 @@ export function itemValue(it, dateISO) {
     durationMin: it.durationMin,
     remindMin: it.remindMin,
     title: it.title === '(untitled)' ? '' : it.title,
+    location: it.location || '',
   };
 }
 
