@@ -1,11 +1,10 @@
 # SimpleDay
 
-A minimal day planner: your week at a glance, your day hour by hour.
+A day planner where your schedule is plain text and your server is your own.
 
-SimpleDay has a clean week overview shows what's
-coming, an hour-by-hour plan shows exactly how today fits together, and an optional Telegram
-reminder reaches your phone when it's time. Underneath, your whole plan is plain text, so it stays
-fast, portable and private.
+SimpleDay is a super lightweight day planner where your schedule is a plain text file. You write times and tasks in a simple format; SimpleDay turns them into a week overview and an hour-by-hour day view. Edit either one and the other updates instantly.
+
+When you want reminders or cross-device sync, you set up a small free server on your own Cloudflare account — your server, your data. Reminders arrive through a Telegram bot you create yourself.
 
 **Live:** https://simpleday.pages.dev
 
@@ -13,17 +12,13 @@ fast, portable and private.
 
 ## Features
 
-- **Week and day views.** See the week's days at a glance, then open any day
-  as an hour-by-hour plan.
-- **Reminders on Telegram**, right at the start time by default.
-- **Calendar import.** Bring in events from Google Calendar, Apple Calendar or
-  Outlook with an `.ics` file.
-- **No account and no sign-up.** SimpleDay works offline and installs on
-  your phone like an app.
 - **Plain text as the ground truth.** Everything you planned is stored as editable plain text
   (see [The text format](#the-text-format)).
 - **Private.** Your plan stays in your browser. Sync between devices and
   reminders go through your own free Cloudflare worker.
+- **No account and no sign-up.** SimpleDay works offline and installs on
+  your phone like an app.
+- **Reminders on Telegram**, right at the start time by default.
 
 ## How do I use SimpleDay?
 
@@ -114,7 +109,7 @@ first device. The secret key is generated the first time you open the app, so
 keep it somewhere safe. Anyone with both your worker URL and key can read and
 change your plan.
 
-## Develop SimpleDay
+## For Developers: Develop SimpleDay
 
 Requires Node.js 20+.
 
