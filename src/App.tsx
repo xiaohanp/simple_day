@@ -5,6 +5,7 @@ import { addItem, updateItem, deleteItem, moveItem, itemValue, serializeItem } f
 import { parseIcs } from './lib/ics.js';
 import { loadLocal, saveLocal, pushState, pullState, sendTest, randomKey } from './lib/store.js';
 import { DEFAULT_TEXT } from './lib/defaultText.js';
+import { archivePastWeeks, mergeArchives, weekStartISO } from './lib/archive.js';
 import { Plus } from 'lucide-react';
 import Settings from './components/Settings.tsx';
 import Composer from './components/Composer.tsx';
@@ -36,14 +37,16 @@ function migrateSettings(s) {
 function initialState() {
   const local = loadLocal();
   if (local && local.text !== undefined) {
-    return { text: local.text, settings: { ...defaultSettings(), ...migrateSettings(local.settings || {}) }, updatedAt: local.updatedAt || 0 };
+    return { text: local.text, archive: local.archive || {}, settings: { ...defaultSettings(), ...migrateSettings(local.settings || {}) }, updatedAt: local.updatedAt || 0 };
   }
-  return { text: DEFAULT_TEXT, settings: defaultSettings(), updatedAt: Date.now() };
+  return { text: DEFAULT_TEXT, archive: {}, settings: defaultSettings(), updatedAt: Date.now() };
 }
 
 export default function App() {
   const [init] = useState(initialState);
   const [text, setText] = useState(init.text);
+  const [archive, setArchive] = useState(init.archive); // { weekMondayISO: plain text }
+  const [pulled, setPulled] = useState(0); // bumps after a remote pull, to re-run archiving
   const [settings, setSettings] = useState(init.settings);
   const [updatedAt, setUpdatedAt] = useState(init.updatedAt);
   const [showSettings, setShowSettings] = useState(false);
@@ -81,7 +84,7 @@ export default function App() {
   useEffect(() => {
     const ts = Date.now();
     setUpdatedAt(ts);
-    saveLocal({ text, settings, updatedAt: ts });
+    saveLocal({ text, archive, settings, updatedAt: ts });
     if (!settings.workerUrl) {
       setSyncStatus('local only');
       return;
@@ -90,14 +93,14 @@ export default function App() {
     clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(async () => {
       try {
-        await pushState(settings, text, notifications);
-        setSyncStatus('synced');
+        const r = await pushState(settings, text, notifications, archive);
+        setSyncStatus(r.encrypted ? 'synced' : 'synced · not encrypted');
       } catch {
         setSyncStatus('error');
       }
     }, 1500);
     return () => clearTimeout(syncTimer.current);
-  }, [text, settings, notifications]);
+  }, [text, archive, settings, notifications]);
 
   // on load: pull remote state if newer (cross-device)
   useEffect(() => {
@@ -105,14 +108,29 @@ export default function App() {
       if (!settings.workerUrl) return;
       try {
         const remote = await pullState(settings);
+        if (remote?.archive) setArchive((a) => mergeArchives(a, remote.archive));
         if (remote && remote.updatedAt > updatedAt) {
           setText(remote.text);
           setSettings((s) => ({ ...s, ...migrateSettings(remote.settings || {}) }));
         }
+        if (remote) setPulled((n) => n + 1);
       } catch { /* offline — stay local */ }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Weekly archive: once a Mon–Sun week is over, its days move out of the plan.
+  // Runs on load, when a new week starts, and after a pull — never while the
+  // text panel is open, so a half-typed past date isn't whisked away mid-edit.
+  const weekKey = weekStartISO(new Date());
+  useEffect(() => {
+    if (showText) return;
+    const r = archivePastWeeks(text, archive);
+    if (!r) return;
+    setText(r.text);
+    setArchive(r.archive);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekKey, showText, pulled]);
 
   // ---- structured editing (all views share these, so both panes update together)
   const selectDay = (iso, { reveal = true } = {}) => {
@@ -220,6 +238,7 @@ export default function App() {
 
   const syncDot = {
     'synced': 'var(--ok)',
+    'synced · not encrypted': 'var(--accent)',
     'syncing…': 'var(--ink-3)',
     'error': 'var(--accent)',
     'local only': 'var(--line)',
@@ -322,7 +341,7 @@ export default function App() {
         </div>
       )}
 
-      {showText && <TextPanel text={text} onChange={setText} onClose={() => setShowText(false)} />}
+      {showText && <TextPanel text={text} archive={archive} onChange={setText} onClose={() => setShowText(false)} />}
 
       {showSettings && (
         <Settings

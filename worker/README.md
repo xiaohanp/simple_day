@@ -25,7 +25,11 @@ Settings → Notification server → Worker URL. Done.
 - Every minute, the cron reads the state and sends whatever is due
   (up to 30 minutes late; missed-too-long items are dropped).
 - Sent items are recorded in KV for 14 days so nothing fires twice.
-- Your secret key (Settings → Secret key) protects reads and writes.
+- Your plan arrives encrypted (AES-256-GCM, keyed by your Secret key on your
+  device); this worker stores it as-is and can't read it. Clients sign in with
+  a token derived from the Secret key, and only that token's hash is stored.
+- Readable here, because the cron needs them: bot token, chat ID and the
+  upcoming reminder texts.
 
 ## Costs
 

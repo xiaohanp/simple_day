@@ -15,10 +15,13 @@ When you want reminders or cross-device sync, you set up a small free server on 
 - **Plain text as the ground truth.** Everything you planned is stored as editable plain text
   (see [The text format](#the-text-format)).
 - **Private.** Your plan stays in your browser. Sync between devices and
-  reminders go through your own free Cloudflare worker.
+  reminders go through your own free Cloudflare worker, and your plan is
+  encrypted on your device before it gets there.
 - **No account and no sign-up.** SimpleDay works offline and installs on
   your phone like an app.
 - **Reminders on Telegram**, right at the start time by default.
+- **Weekly archive.** When a week (Mon–Sun) is over, its days move out of
+  your plan into a plain-text archive, one chunk per week (Text → Archive).
 
 ## How do I use SimpleDay?
 
@@ -148,9 +151,25 @@ wrangler deploy
 ## Privacy
 
 There's no SimpleDay server. Your plan is stored in your browser's local
-storage. If you set up reminders, it's also stored in your worker's KV storage
-in your own Cloudflare account, together with your Telegram bot token. Nothing
-is sent anywhere else, apart from the reminder messages to Telegram.
+storage. If you set up sync and reminders, a copy is kept in your worker's KV
+storage in your own Cloudflare account, **encrypted on your device first**:
+
+- Your plan and weekly archive are encrypted with AES-256-GCM, using a key
+  derived from your **Secret key** (PBKDF2-SHA256, 600,000 rounds). The worker,
+  and Cloudflare, only ever see the encrypted data.
+- The Secret key itself never leaves your devices. The app signs in to the
+  worker with a separate token derived from it, and the worker stores only a
+  hash of that token.
+- What the worker can read is only what it needs to send your reminders: your
+  Telegram bot token and chat ID, your time zone, and the text of upcoming
+  reminders (e.g. `14:00 Call with Anna`). Reminder messages also pass through
+  Telegram, which doesn't end-to-end encrypt bot chats.
+
+Keep a copy of your Secret key: without it, the synced copy can't be decrypted
+(the plan on each device stays readable). If you used SimpleDay before
+encryption existed, update your worker's code (Settings → Copy worker code →
+paste → Deploy); the next sync then replaces the plain-text copy with an
+encrypted one.
 
 ## The text format
 

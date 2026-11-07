@@ -145,7 +145,7 @@ export default function Settings({ settings, onChange, onTest, onClose, syncStat
             />
           </Row>
 
-          <Row label="Secret key" hint="Protects your schedule. Auto-generated; use the same key on every device.">
+          <Row label="Secret key" hint="Encrypts your plan on this device before it syncs; your server never sees it. Use the same key on every device, and keep a copy: without it, the synced plan can't be read.">
             <input
               className="field font-mono"
               style={{ fontSize: 12.5 }}
@@ -156,9 +156,19 @@ export default function Settings({ settings, onChange, onTest, onClose, syncStat
 
           <div style={{ marginBottom: 28 }} className="font-mono text-[12px]" >
             <span style={{ color: 'var(--ink-3)' }}>sync: </span>
-            <span style={{ color: syncStatus === 'synced' ? 'var(--ok)' : syncStatus === 'error' ? 'var(--accent)' : 'var(--ink-3)' }}>
+            <span style={{ color: syncStatus === 'synced' ? 'var(--ok)' : syncStatus === 'synced · not encrypted' ? 'var(--accent)' : syncStatus === 'error' ? 'var(--accent)' : 'var(--ink-3)' }}>
               {syncStatus}
             </span>
+            {syncStatus === 'synced · not encrypted' && (
+              <div style={{ marginTop: 6, color: 'var(--ink-3)', fontFamily: 'inherit' }}>
+                Your worker runs an older version that stores your plan as plain text. Update it: press <b>Copy worker code</b> below, paste it over the worker's code in Cloudflare and press <b>Deploy</b>.
+              </div>
+            )}
+            {settings.key && settings.key.length < 16 && (
+              <div style={{ marginTop: 6, color: 'var(--accent)' }}>
+                This key is short. Your plan is encrypted with it, so use 16+ random characters (the generated one is fine).
+              </div>
+            )}
           </div>
 
           <div className="label" style={{ fontSize: 12, marginBottom: 14, color: 'var(--ink)' }}>Preferences</div>

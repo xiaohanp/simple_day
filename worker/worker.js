@@ -2,11 +2,19 @@
 // Runs a cron every minute and sends due schedule items to Telegram.
 // The frontend stores the already-computed notification list here,
 // so this worker stays deliberately dumb: no parsing, no timezone math.
+//
+// Privacy (v2): your plan arrives already encrypted (`enc`, AES-GCM, key derived
+// on your device from your secret key). This worker never sees the secret key
+// itself: clients authenticate with a separate token derived from it, and only
+// that token's SHA-256 hash is stored. What stays readable here is only what
+// the worker needs to do its job: bot token, chat id, and upcoming reminder texts.
+
+const VERSION = 2;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Key',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Key, X-Legacy-Key',
 };
 
 const json = (obj, status = 200) =>
@@ -30,10 +38,24 @@ async function loadState(env) {
   return (await env.SIMPLEDAY.get('state', 'json')) || null;
 }
 
-function authorized(req, state) {
-  const key = req.headers.get('X-Key') || '';
-  return state && state.key && key === state.key;
+async function sha256hex(s) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
+
+// Encrypted state: X-Key is the auth token, checked against its stored hash.
+// Older (v1) state stored the plain secret key; old clients send it as X-Key, and
+// new clients send it once as X-Legacy-Key to prove ownership while upgrading.
+async function authorize(req, state) {
+  if (!state) return { ok: false };
+  const key = req.headers.get('X-Key') || '';
+  if (state.authHash) return { ok: !!key && (await sha256hex(key)) === state.authHash };
+  const legacy = req.headers.get('X-Legacy-Key') || '';
+  if (state.key && (key === state.key || legacy === state.key)) return { ok: true };
+  return { ok: false, legacy: !!state.key };
+}
+
+const denied = (a) => json({ error: 'unauthorized', legacy: !!a.legacy }, 403);
 
 export default {
   async fetch(req, env) {
@@ -43,28 +65,44 @@ export default {
     const state = await loadState(env);
 
     if (url.pathname === '/health') {
-      return json({ ok: true, configured: !!state });
+      return json({ ok: true, configured: !!state, v: VERSION });
     }
 
     if (url.pathname === '/state' && req.method === 'GET') {
       if (!state) return json({ error: 'not found' }, 404);
-      if (!authorized(req, state)) return json({ error: 'unauthorized' }, 403);
-      return json(state);
+      const a = await authorize(req, state);
+      if (!a.ok) return denied(a);
+      const { key: _k, authHash: _h, ...pub } = state; // never hand back secrets
+      return json(pub);
     }
 
     if (url.pathname === '/state' && req.method === 'PUT') {
       // first write bootstraps the key; later writes must match it
-      if (state && !authorized(req, state)) return json({ error: 'unauthorized' }, 403);
+      if (state) {
+        const a = await authorize(req, state);
+        if (!a.ok) return denied(a);
+      }
       const body = await req.json().catch(() => null);
-      if (!body || typeof body.text !== 'string') return json({ error: 'bad body' }, 400);
       const key = req.headers.get('X-Key') || '';
       if (!key) return json({ error: 'X-Key required' }, 400);
+      if (body && body.enc && typeof body.enc.ct === 'string') {
+        // encrypted plan: store the ciphertext and only a hash of the auth token
+        const { text: _t, archive: _a, ...rest } = body;
+        await env.SIMPLEDAY.put('state', JSON.stringify({ ...rest, authHash: await sha256hex(key) }));
+        return json({ ok: true, encrypted: true });
+      }
+      if (!body || typeof body.text !== 'string') return json({ error: 'bad body' }, 400);
+      // plaintext write from an old client: never downgrade an encrypted store
+      if (state && state.authHash) return json({ error: 'encrypted store: update the app' }, 409);
       await env.SIMPLEDAY.put('state', JSON.stringify({ ...body, key }));
-      return json({ ok: true });
+      return json({ ok: true, encrypted: false });
     }
 
     if (url.pathname === '/test' && req.method === 'POST') {
-      if (state && !authorized(req, state)) return json({ error: 'unauthorized' }, 403);
+      if (state) {
+        const a = await authorize(req, state);
+        if (!a.ok) return denied(a);
+      }
       const body = await req.json().catch(() => ({}));
       if (!body.botToken || !body.chatId) return json({ error: 'botToken and chatId required' }, 400);
       try {
