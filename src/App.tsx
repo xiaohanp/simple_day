@@ -118,8 +118,9 @@ export default function App() {
     const b = base.current;
     let merged;
     if (b.text == null) {
-      // first run after the update: no known base, so keep both sides (union)
-      merged = merge3('', cur.text, remote.text);
+      // First run after the update: no reference version, so we can't tell "this device
+      // added X" from "another device deleted X". The server copy wins — never union.
+      merged = remote.text;
     } else {
       merged = merge3(b.text, cur.text, remote.text);
     }
