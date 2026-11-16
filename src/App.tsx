@@ -6,6 +6,13 @@ import { parseIcs } from './lib/ics.js';
 import { loadLocal, saveLocal, pushState, pullState, sendTest, randomKey } from './lib/store.js';
 import { DEFAULT_TEXT } from './lib/defaultText.js';
 import { archivePastWeeks, mergeArchives, weekStartISO } from './lib/archive.js';
+import { merge3 } from './lib/merge.js';
+
+// What a push carries, minus derived notifications: used to skip no-op pushes.
+const SYNCED_SETTINGS = ['botToken', 'chatId', 'tz', 'digestOn', 'digestTime'];
+const settingsSig = (s = {}) => JSON.stringify(SYNCED_SETTINGS.map((k) => s[k] ?? null));
+const syncSig = (text, archive = {}, settings = {}) =>
+  JSON.stringify([text, Object.keys(archive).sort().map((k) => [k, archive[k]]), settingsSig(settings)]);
 import { Plus } from 'lucide-react';
 import Settings from './components/Settings.tsx';
 import Composer from './components/Composer.tsx';
@@ -37,9 +44,10 @@ function migrateSettings(s) {
 function initialState() {
   const local = loadLocal();
   if (local && local.text !== undefined) {
-    return { text: local.text, archive: local.archive || {}, settings: { ...defaultSettings(), ...migrateSettings(local.settings || {}) }, updatedAt: local.updatedAt || 0 };
+    return { text: local.text, archive: local.archive || {}, settings: { ...defaultSettings(), ...migrateSettings(local.settings || {}) }, updatedAt: local.updatedAt || 0,
+      baseText: local.baseText ?? null, baseUpdatedAt: local.baseUpdatedAt ?? null, baseSig: local.baseSig ?? null, baseSettingsSig: local.baseSettingsSig ?? null };
   }
-  return { text: DEFAULT_TEXT, archive: {}, settings: defaultSettings(), updatedAt: Date.now() };
+  return { text: DEFAULT_TEXT, archive: {}, settings: defaultSettings(), updatedAt: 0, baseText: null, baseUpdatedAt: null, baseSig: null, baseSettingsSig: null };
 }
 
 export default function App() {
@@ -48,7 +56,6 @@ export default function App() {
   const [archive, setArchive] = useState(init.archive); // { weekMondayISO: plain text }
   const [pulled, setPulled] = useState(0); // bumps after a remote pull, to re-run archiving
   const [settings, setSettings] = useState(init.settings);
-  const [updatedAt, setUpdatedAt] = useState(init.updatedAt);
   const [showSettings, setShowSettings] = useState(false);
   const [showText, setShowText] = useState(false);
   const [mobileView, setMobileView] = useState('days'); // 'days' | 'day'
@@ -80,42 +87,145 @@ export default function App() {
     return () => clearInterval(t);
   }, []);
 
-  // persist locally + debounced push to worker
+  // ---- sync with the worker
+  // `base` is the last version this device saw on the server (text + its updatedAt).
+  // Every push says which version it was based on; the worker refuses (409) if the
+  // server has moved on, and we then pull, merge our edits on top, and push again.
+  // So a tab left open overnight, or a device that was off, can't wipe edits made
+  // elsewhere — it merges instead of overwriting.
+  const latest = useRef(null);
+  latest.current = { text, archive, settings, notifications };
+  const base = useRef({ text: init.baseText, updatedAt: init.baseUpdatedAt, sig: init.baseSig, settingsSig: init.baseSettingsSig });
+  const readyRef = useRef(false);
+  const inflight = useRef(false);
+  const lastPull = useRef(0);
+  const [ready, setReady] = useState(false);
+  const [syncNonce, setSyncNonce] = useState(0);
+
+  const persist = () => {
+    const c = latest.current;
+    const b = base.current;
+    saveLocal({ text: c.text, archive: c.archive, settings: c.settings, updatedAt: Date.now(),
+      baseText: b.text, baseUpdatedAt: b.updatedAt, baseSig: b.sig, baseSettingsSig: b.settingsSig });
+  };
+
+  // Pull the server copy and fold this device's unsynced edits into it.
+  const pullMerge = async () => {
+    const remote = await pullState(latest.current.settings);
+    lastPull.current = Date.now();
+    if (!remote) return null;
+    const cur = latest.current; // read after the await: includes anything typed meanwhile
+    const b = base.current;
+    let merged;
+    if (b.text == null) {
+      // first run after the update: no known base, so keep both sides (union)
+      merged = merge3('', cur.text, remote.text);
+    } else {
+      merged = merge3(b.text, cur.text, remote.text);
+    }
+    const remoteSettings = migrateSettings(remote.settings || {});
+    const mergedArchive = mergeArchives(cur.archive, remote.archive || {});
+    const settingsUnchangedHere = b.settingsSig == null || settingsSig(cur.settings) === b.settingsSig;
+    base.current = {
+      text: remote.text,
+      updatedAt: remote.updatedAt ?? null,
+      sig: syncSig(remote.text, remote.archive || {}, remoteSettings),
+      settingsSig: settingsSig(remoteSettings),
+    };
+    if (merged !== cur.text) setText(merged);
+    setArchive(mergedArchive);
+    if (settingsUnchangedHere) setSettings((s) => ({ ...s, ...remoteSettings }));
+    setPulled((n) => n + 1);
+    persist();
+    return remote;
+  };
+
+  // Push now (no debounce). On conflict: merge, then the effect below pushes again.
+  const pushNow = async (opts = {}) => {
+    const snap = latest.current;
+    if (!snap.settings.workerUrl || !readyRef.current || inflight.current) return;
+    if (syncSig(snap.text, snap.archive, snap.settings) === base.current.sig) {
+      setSyncStatus('synced');
+      return;
+    }
+    inflight.current = true;
+    try {
+      const r = await pushState(snap.settings, snap.text, snap.notifications, snap.archive, base.current.updatedAt ?? null, opts);
+      if (r.ok) {
+        base.current = { text: snap.text, updatedAt: r.updatedAt, sig: syncSig(snap.text, snap.archive, snap.settings), settingsSig: settingsSig(snap.settings) };
+        persist();
+        const c = latest.current;
+        const more = syncSig(c.text, c.archive, c.settings) !== base.current.sig;
+        setSyncStatus(more ? 'syncing…' : r.encrypted ? 'synced' : 'synced · not encrypted');
+        if (more) setSyncNonce((n) => n + 1);
+      } else if (r.conflict) {
+        setSyncStatus('merging…');
+        await pullMerge();
+        setSyncNonce((n) => n + 1); // push the merged result
+      }
+    } catch {
+      setSyncStatus('error');
+    } finally {
+      inflight.current = false;
+    }
+  };
+
+  // persist locally on every change + debounced push
   useEffect(() => {
-    const ts = Date.now();
-    setUpdatedAt(ts);
-    saveLocal({ text, archive, settings, updatedAt: ts });
+    persist();
     if (!settings.workerUrl) {
       setSyncStatus('local only');
       return;
     }
+    if (!ready) return; // never push before the first pull has had its chance
     setSyncStatus('syncing…');
     clearTimeout(syncTimer.current);
-    syncTimer.current = setTimeout(async () => {
-      try {
-        const r = await pushState(settings, text, notifications, archive);
-        setSyncStatus(r.encrypted ? 'synced' : 'synced · not encrypted');
-      } catch {
-        setSyncStatus('error');
-      }
-    }, 1500);
+    syncTimer.current = setTimeout(() => pushNow(), 1500);
     return () => clearTimeout(syncTimer.current);
-  }, [text, archive, settings, notifications]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, archive, settings, notifications, ready, syncNonce]);
 
-  // on load: pull remote state if newer (cross-device)
+  // on load: pull + merge before anything is pushed
   useEffect(() => {
     (async () => {
-      if (!settings.workerUrl) return;
-      try {
-        const remote = await pullState(settings);
-        if (remote?.archive) setArchive((a) => mergeArchives(a, remote.archive));
-        if (remote && remote.updatedAt > updatedAt) {
-          setText(remote.text);
-          setSettings((s) => ({ ...s, ...migrateSettings(remote.settings || {}) }));
-        }
-        if (remote) setPulled((n) => n + 1);
-      } catch { /* offline — stay local */ }
+      if (settings.workerUrl) {
+        try { await pullMerge(); } catch { /* offline — stay local; a later push merges */ }
+      }
+      readyRef.current = true;
+      setReady(true);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Stay current: pull when the tab comes back, the network returns, the laptop
+  // wakes (a long gap between ticks), or every 2 minutes; save right away when hidden.
+  useEffect(() => {
+    let lastTick = Date.now();
+    const refresh = () => {
+      if (!readyRef.current || inflight.current || !latest.current.settings.workerUrl) return;
+      pullMerge().catch(() => {});
+    };
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') {
+        clearTimeout(syncTimer.current);
+        pushNow({ keepalive: true });
+      } else refresh();
+    };
+    const iv = setInterval(() => {
+      const now = Date.now();
+      const woke = now - lastTick > 60000;
+      lastTick = now;
+      if (document.visibilityState === 'visible' && (woke || now - lastPull.current > 120000)) refresh();
+    }, 15000);
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('online', refresh);
+    window.addEventListener('focus', refresh);
+    return () => {
+      clearInterval(iv);
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('online', refresh);
+      window.removeEventListener('focus', refresh);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

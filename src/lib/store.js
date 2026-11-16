@@ -66,9 +66,13 @@ async function call(settings, path, init = {}) {
 
 const configured = (settings) => baseUrl(settings.workerUrl) && settings.key;
 
-// Push the plan. Returns { ok, encrypted }.
-export async function pushState(settings, text, notifications, archive = {}) {
+// Push the plan. `baseUpdatedAt` is the server version this edit was based on;
+// the worker refuses (409) if the server has moved on since, so an outdated copy
+// can never overwrite newer edits. Returns { ok, encrypted, updatedAt } or
+// { ok: false, conflict: true }.
+export async function pushState(settings, text, notifications, archive = {}, baseUpdatedAt = null, { keepalive = false } = {}) {
   if (!configured(settings)) return { ok: false, reason: 'not-configured' };
+  const updatedAt = Math.max(Date.now(), (baseUpdatedAt || 0) + 1);
   const shared = {
     // readable by the worker on purpose: it needs these to send your reminders
     settings: {
@@ -79,20 +83,24 @@ export async function pushState(settings, text, notifications, archive = {}) {
       digestTime: settings.digestTime,
     },
     notifications,
-    updatedAt: Date.now(),
+    updatedAt,
+    baseUpdatedAt,
   };
   const url = baseUrl(settings.workerUrl);
   const v = await workerVersion(url);
   let body;
   if (v < 2) body = { text, archive, ...shared };
   else body = { enc: await seal((await deriveKeys(settings.key)).key, { text, archive }), ...shared };
+  const json = JSON.stringify(body);
   const { res, encrypted } = await call(settings, '/state', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: json,
+    keepalive: keepalive && json.length < 60000, // lets a save finish while the page closes
   });
+  if (res.status === 409) return { ok: false, conflict: true };
   if (!res.ok) throw new Error(`sync failed: ${res.status}`);
-  return { ok: true, encrypted };
+  return { ok: true, encrypted, updatedAt };
 }
 
 // Pull the plan, decrypted. Returns { text, archive, settings, updatedAt } or null.

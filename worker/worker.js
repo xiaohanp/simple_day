@@ -34,6 +34,20 @@ async function sendTelegram(botToken, chatId, text) {
   return body;
 }
 
+async function sendNtfy(topic, text) {
+  const res = await fetch(`https://ntfy.sh/${topic}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Priority': '5',  // max priority = alarm-style notification
+      'Title': 'SimpleDay',
+    },
+    body: text,
+  });
+  if (!res.ok) throw new Error(`ntfy error ${res.status}`);
+  return res;
+}
+
 async function loadState(env) {
   return (await env.SIMPLEDAY.get('state', 'json')) || null;
 }
@@ -85,6 +99,14 @@ export default {
       const body = await req.json().catch(() => null);
       const key = req.headers.get('X-Key') || '';
       if (!key) return json({ error: 'X-Key required' }, 400);
+      // Compare-and-swap: a write must say which version it was based on. A client
+      // holding an older copy (a tab left open overnight, a device that was off)
+      // gets 409 and has to pull + merge first, instead of silently overwriting
+      // newer edits made elsewhere.
+      if (state && body && (body.baseUpdatedAt ?? null) !== (state.updatedAt ?? null)) {
+        return json({ error: 'conflict', updatedAt: state.updatedAt ?? null }, 409);
+      }
+      if (body) delete body.baseUpdatedAt;
       if (body && body.enc && typeof body.enc.ct === 'string') {
         // encrypted plan: store the ciphertext and only a hash of the auth token
         const { text: _t, archive: _a, ...rest } = body;
@@ -119,7 +141,7 @@ export default {
   async scheduled(event, env, ctx) {
     const state = await loadState(env);
     if (!state || !state.settings || !state.settings.botToken || !state.settings.chatId) return;
-    const { botToken, chatId } = state.settings;
+    const { botToken, chatId, ntfyTopic, ntfyEnabled } = state.settings;
     const now = Date.now();
     const GRACE = 30 * 60 * 1000; // deliver up to 30 min late, then drop
 
@@ -133,7 +155,19 @@ export default {
       if (already) continue;
       try {
         const late = now - n.fireAt > 5 * 60 * 1000;
-        await sendTelegram(botToken, chatId, (late ? '(late) ' : '') + n.text);
+        const text = (late ? '(late) ' : '') + n.text;
+        
+        // send to Telegram (original behavior)
+        await sendTelegram(botToken, chatId, text);
+        
+        // also send to ntfy if configured
+        if (ntfyEnabled && ntfyTopic) {
+          await sendNtfy(ntfyTopic, text).catch((e) => {
+            console.error('ntfy send failed', e);
+            // don't block Telegram delivery on ntfy failure
+          });
+        }
+        
         ctx.waitUntil(env.SIMPLEDAY.put(sentKey, '1', { expirationTtl: 14 * 24 * 3600 }));
       } catch (e) {
         // leave unsent; next cron tick retries within the grace window
