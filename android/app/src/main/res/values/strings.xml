@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">SimpleDay</string>
+    <string name="widget_name">SimpleDay today</string>
+    <string name="widget_desc">Today\'s plan, current item highlighted</string>
+</resources>
